@@ -1,4 +1,5 @@
 var assetLoader = (function(){
+	var assetCache = {};
 
 	function formatResponse(xhr) {
 		if(xhr.response && typeof xhr.response === 'object') {
@@ -11,29 +12,36 @@ var assetLoader = (function(){
 	}
 
 	function loadAsset(path, callback, errorCallback) {
-		var response;
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', path, true);
-		// set responseType after calling open or IE will break.
-		xhr.responseType = "json";
-	    xhr.send();
-	    xhr.onreadystatechange = function () {
-	        if (xhr.readyState == 4) {
-	            if(xhr.status == 200){
-	            	response = formatResponse(xhr);
-	            	callback(response);
-	            }else{
-	                try{
-	            		response = formatResponse(xhr);
-	            		callback(response);
-	                }catch(err){
-	                	if(errorCallback) {
-	                		errorCallback(err);
-	                	}
-	                }
-	            }
-	        }
-	    };
+		if (assetCache[path]) {
+			callback(assetCache[path]);
+		}
+		else {
+			var response;
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', path, true);
+			// set responseType after calling open or IE will break.
+			xhr.responseType = "json";
+			xhr.send();
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == 4) {
+					if(xhr.status == 200){
+						response = formatResponse(xhr);
+						assetCache[path] = response;
+						callback(response);
+					}else{
+						try{
+							response = formatResponse(xhr);
+							assetCache[path] = response;
+							callback(response);
+						}catch(err){
+							if(errorCallback) {
+								errorCallback(err);
+							}
+						}
+					}
+				}
+			};
+		}
 	}
 	return {
 		load: loadAsset
